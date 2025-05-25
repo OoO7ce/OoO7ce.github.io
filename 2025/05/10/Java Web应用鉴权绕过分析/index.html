@@ -1,0 +1,828 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=dark>
+
+
+
+<head>
+  <meta charset="UTF-8">
+
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Noah">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="Java Web应用鉴权绕过分析目录 Servlet鉴权基础 路径参数污染攻击 Spring拦截器绕过 Shiro鉴权绕过 其他常见绕过技术 防护建议   Servlet鉴权基础1. 源码审计入口点在进行Servlet应用的安全审计时，主要关注以下文件：  闭源应用：查看 WEB-INF&#x2F;web.xml 文件 开源应用：直接查看源码中的路由配置  web.xml配置示例12345678910111">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Java Web应用鉴权绕过分析">
+<meta property="og:url" content="https://ooo7ce.github.io/2025/05/10/Java%20Web%E5%BA%94%E7%94%A8%E9%89%B4%E6%9D%83%E7%BB%95%E8%BF%87%E5%88%86%E6%9E%90/index.html">
+<meta property="og:site_name" content="0xSec">
+<meta property="og:description" content="Java Web应用鉴权绕过分析目录 Servlet鉴权基础 路径参数污染攻击 Spring拦截器绕过 Shiro鉴权绕过 其他常见绕过技术 防护建议   Servlet鉴权基础1. 源码审计入口点在进行Servlet应用的安全审计时，主要关注以下文件：  闭源应用：查看 WEB-INF&#x2F;web.xml 文件 开源应用：直接查看源码中的路由配置  web.xml配置示例12345678910111">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://ooo7ce.github.io/img/java_auth.png">
+<meta property="article:published_time" content="2025-05-09T16:30:56.000Z">
+<meta property="article:modified_time" content="2025-05-25T17:24:26.794Z">
+<meta property="article:author" content="Noah">
+<meta property="article:tag" content="代码审计">
+<meta property="article:tag" content="Java">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://ooo7ce.github.io/img/java_auth.png">
+  
+  
+    <meta name="referrer" content="no-referrer-when-downgrade">
+  
+  
+  <title>Java Web应用鉴权绕过分析 - 0xSec</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/c/font_1749284_5i9bdhy70f8.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"ooo7ce.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":true,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null},"woyaola":null,"cnzz":null},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.1.1"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong> </strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Java Web应用鉴权绕过分析"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2025-05-10 00:30" pubdate>
+          2025年5月10日 凌晨
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          5.1k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          43 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">Java Web应用鉴权绕过分析</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h1 id="Java-Web应用鉴权绕过分析"><a href="#Java-Web应用鉴权绕过分析" class="headerlink" title="Java Web应用鉴权绕过分析"></a>Java Web应用鉴权绕过分析</h1><h2 id="目录"><a href="#目录" class="headerlink" title="目录"></a>目录</h2><ol>
+<li><a href="#servlet%E9%89%B4%E6%9D%83%E5%9F%BA%E7%A1%80">Servlet鉴权基础</a></li>
+<li><a href="#%E8%B7%AF%E5%BE%84%E5%8F%82%E6%95%B0%E6%B1%A1%E6%9F%93%E6%94%BB%E5%87%BB">路径参数污染攻击</a></li>
+<li><a href="#spring%E6%8B%A6%E6%88%AA%E5%99%A8%E7%BB%95%E8%BF%87">Spring拦截器绕过</a></li>
+<li><a href="#shiro%E9%89%B4%E6%9D%83%E7%BB%95%E8%BF%87">Shiro鉴权绕过</a></li>
+<li><a href="#%E5%85%B6%E4%BB%96%E5%B8%B8%E8%A7%81%E7%BB%95%E8%BF%87%E6%8A%80%E6%9C%AF">其他常见绕过技术</a></li>
+<li><a href="#%E9%98%B2%E6%8A%A4%E5%BB%BA%E8%AE%AE">防护建议</a></li>
+</ol>
+<hr>
+<h2 id="Servlet鉴权基础"><a href="#Servlet鉴权基础" class="headerlink" title="Servlet鉴权基础"></a>Servlet鉴权基础</h2><h3 id="1-源码审计入口点"><a href="#1-源码审计入口点" class="headerlink" title="1. 源码审计入口点"></a>1. 源码审计入口点</h3><p>在进行Servlet应用的安全审计时，主要关注以下文件：</p>
+<ul>
+<li><strong>闭源应用</strong>：查看 <code>WEB-INF/web.xml</code> 文件</li>
+<li><strong>开源应用</strong>：直接查看源码中的路由配置</li>
+</ul>
+<h4 id="web-xml配置示例"><a href="#web-xml配置示例" class="headerlink" title="web.xml配置示例"></a>web.xml配置示例</h4><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-meta">&lt;?xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;UTF-8&quot;</span>?&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">web-app</span> <span class="hljs-attr">xmlns</span>=<span class="hljs-string">&quot;http://xmlns.jcp.org/xml/ns/javaee&quot;</span></span><br><span class="hljs-tag">         <span class="hljs-attr">xmlns:xsi</span>=<span class="hljs-string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span></span><br><span class="hljs-tag">         <span class="hljs-attr">xsi:schemaLocation</span>=<span class="hljs-string">&quot;http://xmlns.jcp.org/xml/ns/javaee</span></span><br><span class="hljs-string"><span class="hljs-tag">         http://xmlns.jcp.org/xml/ns/javaee/web-app_4_0.xsd&quot;</span></span><br><span class="hljs-tag">         <span class="hljs-attr">version</span>=<span class="hljs-string">&quot;4.0&quot;</span>&gt;</span><br>    <br>    <span class="hljs-comment">&lt;!-- 过滤器配置 --&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">filter</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">filter-name</span>&gt;</span>AuthFilter<span class="hljs-tag">&lt;/<span class="hljs-name">filter-name</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">filter-class</span>&gt;</span>com.example.AuthFilter<span class="hljs-tag">&lt;/<span class="hljs-name">filter-class</span>&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">filter</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">filter-mapping</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">filter-name</span>&gt;</span>AuthFilter<span class="hljs-tag">&lt;/<span class="hljs-name">filter-name</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">url-pattern</span>&gt;</span>/*<span class="hljs-tag">&lt;/<span class="hljs-name">url-pattern</span>&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">filter-mapping</span>&gt;</span><br>    <br>    <span class="hljs-comment">&lt;!-- Servlet配置 --&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">servlet</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">servlet-name</span>&gt;</span>HelloServlet<span class="hljs-tag">&lt;/<span class="hljs-name">servlet-name</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">servlet-class</span>&gt;</span>com.example.HelloServlet<span class="hljs-tag">&lt;/<span class="hljs-name">servlet-class</span>&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">servlet</span>&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">servlet-mapping</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">servlet-name</span>&gt;</span>HelloServlet<span class="hljs-tag">&lt;/<span class="hljs-name">servlet-name</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">url-pattern</span>&gt;</span>/hello<span class="hljs-tag">&lt;/<span class="hljs-name">url-pattern</span>&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">servlet-mapping</span>&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">web-app</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="2-Servlet过滤器鉴权实现"><a href="#2-Servlet过滤器鉴权实现" class="headerlink" title="2. Servlet过滤器鉴权实现"></a>2. Servlet过滤器鉴权实现</h3><h4 id="基础过滤器示例"><a href="#基础过滤器示例" class="headerlink" title="基础过滤器示例"></a>基础过滤器示例</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> org.example.Filter;<br><br><span class="hljs-keyword">import</span> jakarta.servlet.FilterChain;<br><span class="hljs-keyword">import</span> jakarta.servlet.ServletException;<br><span class="hljs-keyword">import</span> jakarta.servlet.annotation.WebFilter;<br><span class="hljs-keyword">import</span> jakarta.servlet.http.HttpFilter;<br><span class="hljs-keyword">import</span> jakarta.servlet.http.HttpServletRequest;<br><span class="hljs-keyword">import</span> jakarta.servlet.http.HttpServletResponse;<br><span class="hljs-keyword">import</span> jakarta.servlet.http.HttpSession;<br><br><span class="hljs-keyword">import</span> java.io.IOException;<br><span class="hljs-keyword">import</span> java.io.PrintWriter;<br><br><span class="hljs-meta">@WebFilter(&quot;/*&quot;)</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">AuthFilter</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">HttpFilter</span> &#123;<br>    <br>    <span class="hljs-comment">// 白名单路径</span><br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> String[] WHITELIST = &#123;<br>        <span class="hljs-string">&quot;/login&quot;</span>, <span class="hljs-string">&quot;/register&quot;</span>, <span class="hljs-string">&quot;/static/&quot;</span>, <span class="hljs-string">&quot;/css/&quot;</span>, <span class="hljs-string">&quot;/js/&quot;</span>, <span class="hljs-string">&quot;/images/&quot;</span><br>    &#125;;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doFilter</span><span class="hljs-params">(HttpServletRequest request, HttpServletResponse response, </span><br><span class="hljs-params">                        FilterChain chain)</span> <span class="hljs-keyword">throws</span> IOException, ServletException &#123;<br>        <br>        <span class="hljs-type">String</span> <span class="hljs-variable">requestURI</span> <span class="hljs-operator">=</span> request.getRequestURI();<br>        <span class="hljs-type">String</span> <span class="hljs-variable">contextPath</span> <span class="hljs-operator">=</span> request.getContextPath();<br>        <span class="hljs-type">String</span> <span class="hljs-variable">path</span> <span class="hljs-operator">=</span> requestURI.substring(contextPath.length());<br>        <br>        System.out.println(<span class="hljs-string">&quot;拦截路径: &quot;</span> + path);<br>        <br>        <span class="hljs-comment">// 检查是否在白名单中</span><br>        <span class="hljs-keyword">if</span> (isWhitelist(path)) &#123;<br>            chain.doFilter(request, response);<br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br>        <br>        <span class="hljs-comment">// 检查用户是否已登录</span><br>        <span class="hljs-type">HttpSession</span> <span class="hljs-variable">session</span> <span class="hljs-operator">=</span> request.getSession(<span class="hljs-literal">false</span>);<br>        <span class="hljs-keyword">if</span> (session == <span class="hljs-literal">null</span> || session.getAttribute(<span class="hljs-string">&quot;user&quot;</span>) == <span class="hljs-literal">null</span>) &#123;<br>            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);<br>            response.getWriter().println(<span class="hljs-string">&quot;未授权访问，请先登录&quot;</span>);<br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br>        <br>        <span class="hljs-comment">// 通过验证，继续处理请求</span><br>        chain.doFilter(request, response);<br>    &#125;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">isWhitelist</span><span class="hljs-params">(String path)</span> &#123;<br>        <span class="hljs-keyword">for</span> (String pattern : WHITELIST) &#123;<br>            <span class="hljs-keyword">if</span> (path.startsWith(pattern)) &#123;<br>                <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>            &#125;<br>        &#125;<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">init</span><span class="hljs-params">()</span> <span class="hljs-keyword">throws</span> ServletException &#123;<br>        System.out.println(<span class="hljs-string">&quot;AuthFilter 初始化&quot;</span>);<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">destroy</span><span class="hljs-params">()</span> &#123;<br>        System.out.println(<span class="hljs-string">&quot;AuthFilter 销毁&quot;</span>);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="存在漏洞的过滤器示例"><a href="#存在漏洞的过滤器示例" class="headerlink" title="存在漏洞的过滤器示例"></a>存在漏洞的过滤器示例</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@WebFilter(&quot;/*&quot;)</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">VulnerableFilter</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">HttpFilter</span> &#123;<br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doFilter</span><span class="hljs-params">(HttpServletRequest request, HttpServletResponse response, </span><br><span class="hljs-params">                        FilterChain chain)</span> <span class="hljs-keyword">throws</span> IOException, ServletException &#123;<br>        <br>        <span class="hljs-type">String</span> <span class="hljs-variable">requestURI</span> <span class="hljs-operator">=</span> request.getRequestURI();<br>        <span class="hljs-type">PrintWriter</span> <span class="hljs-variable">writer</span> <span class="hljs-operator">=</span> response.getWriter();<br>        <br>        <span class="hljs-comment">// 漏洞点：简单的后缀检查</span><br>        <span class="hljs-keyword">if</span> (requestURI.contains(<span class="hljs-string">&quot;.css&quot;</span>) || requestURI.contains(<span class="hljs-string">&quot;.js&quot;</span>)) &#123;<br>            chain.doFilter(request, response);<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-comment">// 检查session</span><br>            <span class="hljs-keyword">if</span> (request.getSession().getAttribute(<span class="hljs-string">&quot;user&quot;</span>) == <span class="hljs-literal">null</span>) &#123;<br>                writer.println(<span class="hljs-string">&quot;forbidden&quot;</span>);<br>                <span class="hljs-keyword">return</span>;<br>            &#125;<br>            chain.doFilter(request, response);<br>        &#125;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="业务Servlet示例"><a href="#业务Servlet示例" class="headerlink" title="业务Servlet示例"></a>业务Servlet示例</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> org.example;<br><br><span class="hljs-keyword">import</span> jakarta.servlet.ServletException;<br><span class="hljs-keyword">import</span> jakarta.servlet.annotation.WebServlet;<br><span class="hljs-keyword">import</span> jakarta.servlet.http.HttpServlet;<br><span class="hljs-keyword">import</span> jakarta.servlet.http.HttpServletRequest;<br><span class="hljs-keyword">import</span> jakarta.servlet.http.HttpServletResponse;<br><br><span class="hljs-keyword">import</span> java.io.IOException;<br><br><span class="hljs-meta">@WebServlet(name = &quot;helloServlet&quot;, urlPatterns = &#123;&quot;/hello&quot;, &quot;/admin/hello&quot;&#125;)</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">HelloServlet</span> <span class="hljs-keyword">extends</span> <span class="hljs-title class_">HttpServlet</span> &#123;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doGet</span><span class="hljs-params">(HttpServletRequest req, HttpServletResponse resp)</span> <br>            <span class="hljs-keyword">throws</span> IOException &#123;<br>        <span class="hljs-type">String</span> <span class="hljs-variable">name</span> <span class="hljs-operator">=</span> req.getParameter(<span class="hljs-string">&quot;name&quot;</span>);<br>        <span class="hljs-type">String</span> <span class="hljs-variable">age</span> <span class="hljs-operator">=</span> req.getParameter(<span class="hljs-string">&quot;age&quot;</span>);<br>        <br>        <span class="hljs-comment">// 敏感操作</span><br>        resp.getWriter().println(<span class="hljs-string">&quot;Hello &quot;</span> + name + <span class="hljs-string">&quot; &quot;</span> + age);<br>        resp.getWriter().println(<span class="hljs-string">&quot;你已成功访问受保护的资源！&quot;</span>);<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">protected</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doPost</span><span class="hljs-params">(HttpServletRequest req, HttpServletResponse resp)</span> <br>            <span class="hljs-keyword">throws</span> ServletException, IOException &#123;<br>        <span class="hljs-comment">// 处理POST请求</span><br>        doGet(req, resp);<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="路径参数污染攻击"><a href="#路径参数污染攻击" class="headerlink" title="路径参数污染攻击"></a>路径参数污染攻击</h2><h3 id="1-攻击原理"><a href="#1-攻击原理" class="headerlink" title="1. 攻击原理"></a>1. 攻击原理</h3><p>路径参数（Path Parameters）是URL中分号后面的部分，在Java Servlet规范中被定义为路径的一部分，但不被当作查询参数处理。</p>
+<h4 id="URL结构解析"><a href="#URL结构解析" class="headerlink" title="URL结构解析"></a>URL结构解析</h4><figure class="highlight nestedtext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs nestedtext"><span class="hljs-attribute">完整URL</span><span class="hljs-punctuation">:</span> <span class="hljs-string">http://localhost:8080/app/hello;jsessionid=ABC123?name=test</span><br><span class="hljs-attribute">├── 协议</span><span class="hljs-punctuation">:</span> <span class="hljs-string">http://</span><br><span class="hljs-attribute">├── 主机</span><span class="hljs-punctuation">:</span> <span class="hljs-string">localhost:8080</span><br><span class="hljs-attribute">├── 上下文路径</span><span class="hljs-punctuation">:</span> <span class="hljs-string">/app</span><br><span class="hljs-attribute">├── Servlet路径</span><span class="hljs-punctuation">:</span> <span class="hljs-string">/hello</span><br><span class="hljs-attribute">├── 路径参数</span><span class="hljs-punctuation">:</span> <span class="hljs-string">;jsessionid=ABC123</span><br><span class="hljs-attribute">└── 查询参数</span><span class="hljs-punctuation">:</span> <span class="hljs-string">?name=test</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="2-绕过原理详解"><a href="#2-绕过原理详解" class="headerlink" title="2. 绕过原理详解"></a>2. 绕过原理详解</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 当访问 /hello;.css 时</span><br><span class="hljs-type">String</span> <span class="hljs-variable">requestURI</span> <span class="hljs-operator">=</span> request.getRequestURI(); <span class="hljs-comment">// 返回 &quot;/hello;.css&quot;</span><br><span class="hljs-type">String</span> <span class="hljs-variable">servletPath</span> <span class="hljs-operator">=</span> request.getServletPath(); <span class="hljs-comment">// 返回 &quot;/hello&quot;</span><br><br><span class="hljs-comment">// 漏洞过滤器的判断逻辑</span><br><span class="hljs-keyword">if</span> (requestURI.contains(<span class="hljs-string">&quot;.css&quot;</span>)) &#123;<br>    <span class="hljs-comment">// 误判为CSS文件，直接放行</span><br>    chain.doFilter(request, response);<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-常见绕过Payload"><a href="#3-常见绕过Payload" class="headerlink" title="3. 常见绕过Payload"></a>3. 常见绕过Payload</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 基础绕过</span><br>/admin;.css<br>/admin;.js<br>/admin;.png<br>/admin;.jpg<br><br><span class="hljs-comment"># 带参数的绕过</span><br>/admin/users;.css?action=delete&amp;<span class="hljs-built_in">id</span>=1<br>/api/sensitive;.js?method=POST<br><br><span class="hljs-comment"># 多层嵌套绕过</span><br>/admin/config;.css;.js<br>/admin;x=1;.css<br><br><span class="hljs-comment"># 特殊字符绕过</span><br>/admin;%2e%63%73%73  <span class="hljs-comment"># URL编码的.css</span><br>/admin;.CSS          <span class="hljs-comment"># 大小写绕过（取决于具体实现）</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="4-路径参数的历史用途"><a href="#4-路径参数的历史用途" class="headerlink" title="4. 路径参数的历史用途"></a>4. 路径参数的历史用途</h3><h4 id="Session-ID传递"><a href="#Session-ID传递" class="headerlink" title="Session ID传递"></a>Session ID传递</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 早期JSP应用中，当Cookie被禁用时使用路径参数传递Session ID</span><br><span class="hljs-type">String</span> <span class="hljs-variable">sessionUrl</span> <span class="hljs-operator">=</span> response.encodeURL(<span class="hljs-string">&quot;/protected/resource&quot;</span>);<br><span class="hljs-comment">// 生成类似：/protected/resource;jsessionid=ABCD1234EFGH5678</span><br><br><span class="hljs-comment">// 服务器端获取Session</span><br><span class="hljs-type">HttpSession</span> <span class="hljs-variable">session</span> <span class="hljs-operator">=</span> request.getSession(); <span class="hljs-comment">// 自动解析路径参数中的jsessionid</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="其他用途示例"><a href="#其他用途示例" class="headerlink" title="其他用途示例"></a>其他用途示例</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 版本控制</span><br>/api/users;version=<span class="hljs-number">2.0</span><br><br><span class="hljs-comment">// 矩阵参数</span><br>/products;category=electronics;brand=sony<br><br><span class="hljs-comment">// 缓存控制</span><br>/<span class="hljs-keyword">static</span>/app.js;version=<span class="hljs-number">1.2</span><span class="hljs-number">.3</span>;cache=<span class="hljs-literal">false</span><br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="Spring拦截器绕过"><a href="#Spring拦截器绕过" class="headerlink" title="Spring拦截器绕过"></a>Spring拦截器绕过</h2><h3 id="1-Spring-Boot拦截器配置"><a href="#1-Spring-Boot拦截器配置" class="headerlink" title="1. Spring Boot拦截器配置"></a>1. Spring Boot拦截器配置</h3><h4 id="拦截器实现"><a href="#拦截器实现" class="headerlink" title="拦截器实现"></a>拦截器实现</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.interceptor;<br><br><span class="hljs-keyword">import</span> org.springframework.stereotype.Component;<br><span class="hljs-keyword">import</span> org.springframework.web.servlet.HandlerInterceptor;<br><br><span class="hljs-keyword">import</span> javax.servlet.http.HttpServletRequest;<br><span class="hljs-keyword">import</span> javax.servlet.http.HttpServletResponse;<br><span class="hljs-keyword">import</span> javax.servlet.http.HttpSession;<br><br><span class="hljs-meta">@Component</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">LoginInterceptor</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">HandlerInterceptor</span> &#123;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">preHandle</span><span class="hljs-params">(HttpServletRequest request, HttpServletResponse response, </span><br><span class="hljs-params">                           Object handler)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>        <br>        <span class="hljs-type">String</span> <span class="hljs-variable">requestURI</span> <span class="hljs-operator">=</span> request.getRequestURI();<br>        System.out.println(<span class="hljs-string">&quot;拦截请求: &quot;</span> + requestURI);<br>        <br>        <span class="hljs-comment">// 检查session中是否有用户信息</span><br>        <span class="hljs-type">HttpSession</span> <span class="hljs-variable">session</span> <span class="hljs-operator">=</span> request.getSession(<span class="hljs-literal">false</span>);<br>        <span class="hljs-keyword">if</span> (session == <span class="hljs-literal">null</span> || session.getAttribute(<span class="hljs-string">&quot;user&quot;</span>) == <span class="hljs-literal">null</span>) &#123;<br>            <br>            <span class="hljs-comment">// 判断是否为AJAX请求</span><br>            <span class="hljs-type">String</span> <span class="hljs-variable">xRequestedWith</span> <span class="hljs-operator">=</span> request.getHeader(<span class="hljs-string">&quot;X-Requested-With&quot;</span>);<br>            <span class="hljs-keyword">if</span> (<span class="hljs-string">&quot;XMLHttpRequest&quot;</span>.equals(xRequestedWith)) &#123;<br>                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);<br>                response.getWriter().write(<span class="hljs-string">&quot;&#123;\&quot;error\&quot;:\&quot;未登录\&quot;&#125;&quot;</span>);<br>            &#125; <span class="hljs-keyword">else</span> &#123;<br>                response.sendRedirect(<span class="hljs-string">&quot;/login&quot;</span>);<br>            &#125;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>        &#125;<br>        <br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">postHandle</span><span class="hljs-params">(HttpServletRequest request, HttpServletResponse response, </span><br><span class="hljs-params">                          Object handler, org.springframework.web.servlet.ModelAndView modelAndView)</span> <br>                          <span class="hljs-keyword">throws</span> Exception &#123;<br>        <span class="hljs-comment">// 请求处理后执行</span><br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">afterCompletion</span><span class="hljs-params">(HttpServletRequest request, HttpServletResponse response, </span><br><span class="hljs-params">                              Object handler, Exception ex)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>        <span class="hljs-comment">// 视图渲染后执行</span><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="拦截器注册配置"><a href="#拦截器注册配置" class="headerlink" title="拦截器注册配置"></a>拦截器注册配置</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.config;<br><br><span class="hljs-keyword">import</span> com.example.interceptor.LoginInterceptor;<br><span class="hljs-keyword">import</span> org.springframework.beans.factory.annotation.Autowired;<br><span class="hljs-keyword">import</span> org.springframework.context.annotation.Configuration;<br><span class="hljs-keyword">import</span> org.springframework.web.servlet.config.annotation.InterceptorRegistry;<br><span class="hljs-keyword">import</span> org.springframework.web.servlet.config.annotation.WebMvcConfigurer;<br><br><span class="hljs-meta">@Configuration</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">WebConfig</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">WebMvcConfigurer</span> &#123;<br><br>    <span class="hljs-meta">@Autowired</span><br>    <span class="hljs-keyword">private</span> LoginInterceptor loginInterceptor;<br><br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">addInterceptors</span><span class="hljs-params">(InterceptorRegistry registry)</span> &#123;<br>        registry.addInterceptor(loginInterceptor)<br>                .addPathPatterns(<span class="hljs-string">&quot;/**&quot;</span>)                    <span class="hljs-comment">// 拦截所有请求</span><br>                .excludePathPatterns(                      <span class="hljs-comment">// 排除以下路径</span><br>                    <span class="hljs-string">&quot;/login&quot;</span>,           <span class="hljs-comment">// 登录页面</span><br>                    <span class="hljs-string">&quot;/doLogin&quot;</span>,         <span class="hljs-comment">// 登录处理</span><br>                    <span class="hljs-string">&quot;/register&quot;</span>,        <span class="hljs-comment">// 注册页面</span><br>                    <span class="hljs-string">&quot;/css/**&quot;</span>,          <span class="hljs-comment">// CSS静态资源</span><br>                    <span class="hljs-string">&quot;/js/**&quot;</span>,           <span class="hljs-comment">// JS静态资源</span><br>                    <span class="hljs-string">&quot;/images/**&quot;</span>,       <span class="hljs-comment">// 图片资源</span><br>                    <span class="hljs-string">&quot;/favicon.ico&quot;</span>,     <span class="hljs-comment">// 图标</span><br>                    <span class="hljs-string">&quot;/error&quot;</span>,           <span class="hljs-comment">// 错误页面</span><br>                    <span class="hljs-string">&quot;/api/public/**&quot;</span>    <span class="hljs-comment">// 公开API</span><br>                );<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="2-控制器示例"><a href="#2-控制器示例" class="headerlink" title="2. 控制器示例"></a>2. 控制器示例</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.controller;<br><br><span class="hljs-keyword">import</span> org.springframework.web.bind.annotation.*;<br><br><span class="hljs-keyword">import</span> javax.servlet.http.HttpServletRequest;<br><br><span class="hljs-meta">@RestController</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">LoginController</span> &#123;<br><br>    <span class="hljs-meta">@GetMapping(&quot;/login&quot;)</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">loginPage</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;请先登录&quot;</span>;<br>    &#125;<br><br>    <span class="hljs-meta">@PostMapping(&quot;/doLogin&quot;)</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">doLogin</span><span class="hljs-params">(HttpServletRequest request,</span><br><span class="hljs-params">                          <span class="hljs-meta">@RequestParam</span> String username,</span><br><span class="hljs-params">                          <span class="hljs-meta">@RequestParam</span> String password)</span> &#123;<br>        <br>        <span class="hljs-comment">// 简单的认证逻辑（实际应用中应该查询数据库）</span><br>        <span class="hljs-keyword">if</span> (<span class="hljs-string">&quot;admin&quot;</span>.equals(username) &amp;&amp; <span class="hljs-string">&quot;123456&quot;</span>.equals(password)) &#123;<br>            request.getSession().setAttribute(<span class="hljs-string">&quot;user&quot;</span>, username);<br>            <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;登录成功&quot;</span>;<br>        &#125; <span class="hljs-keyword">else</span> &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;用户名或密码错误&quot;</span>;<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-meta">@GetMapping(&quot;/hello&quot;)</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">hello</span><span class="hljs-params">(HttpServletRequest request)</span> &#123;<br>        <span class="hljs-type">String</span> <span class="hljs-variable">user</span> <span class="hljs-operator">=</span> (String) request.getSession().getAttribute(<span class="hljs-string">&quot;user&quot;</span>);<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;欢迎 &quot;</span> + user + <span class="hljs-string">&quot; 访问受保护的页面！&quot;</span>;<br>    &#125;<br>    <br>    <span class="hljs-meta">@GetMapping(&quot;/admin/users&quot;)</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">adminUsers</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;管理员用户列表页面&quot;</span>;<br>    &#125;<br>    <br>    <span class="hljs-meta">@PostMapping(&quot;/admin/delete&quot;)</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">deleteUser</span><span class="hljs-params">(<span class="hljs-meta">@RequestParam</span> String userId)</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;删除用户: &quot;</span> + userId;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-Spring拦截器绕过技术"><a href="#3-Spring拦截器绕过技术" class="headerlink" title="3. Spring拦截器绕过技术"></a>3. Spring拦截器绕过技术</h3><h4 id="路径参数绕过"><a href="#路径参数绕过" class="headerlink" title="路径参数绕过"></a>路径参数绕过</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 原始受保护路径</span><br>GET /admin/users<br><br><span class="hljs-comment"># 绕过Payload</span><br>GET /admin/users;.css<br>GET /admin/users;.js<br>GET /admin/users;jsessionid=<span class="hljs-built_in">test</span><br><br><span class="hljs-comment"># 带参数的绕过</span><br>POST /admin/delete;.css<br>Content-Type: application/x-www-form-urlencoded<br><br>userId=123<br></code></pre></td></tr></table></figure>
+
+<h4 id="双重URL编码绕过"><a href="#双重URL编码绕过" class="headerlink" title="双重URL编码绕过"></a>双重URL编码绕过</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 正常路径</span><br>/admin/config<br><br><span class="hljs-comment"># URL编码绕过</span><br>/%61dmin/config     <span class="hljs-comment"># a -&gt; %61</span><br>/admin/%63onfig     <span class="hljs-comment"># c -&gt; %63</span><br><br><span class="hljs-comment"># 双重编码绕过</span><br>/%2561dmin/config   <span class="hljs-comment"># %61 -&gt; %2561</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="HTTP方法绕过"><a href="#HTTP方法绕过" class="headerlink" title="HTTP方法绕过"></a>HTTP方法绕过</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 如果拦截器只检查GET请求</span><br><span class="hljs-meta">@GetMapping(&quot;/admin/**&quot;)</span><br><span class="hljs-comment">// 可以尝试使用其他HTTP方法</span><br>POST /admin/users<br>PUT /admin/users<br>PATCH /admin/users<br></code></pre></td></tr></table></figure>
+
+<h3 id="4-XML配置方式（传统Spring-MVC）"><a href="#4-XML配置方式（传统Spring-MVC）" class="headerlink" title="4. XML配置方式（传统Spring MVC）"></a>4. XML配置方式（传统Spring MVC）</h3><figure class="highlight xml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><code class="hljs xml"><span class="hljs-comment">&lt;!-- spring-mvc.xml --&gt;</span><br><span class="hljs-meta">&lt;?xml version=<span class="hljs-string">&quot;1.0&quot;</span> encoding=<span class="hljs-string">&quot;UTF-8&quot;</span>?&gt;</span><br><span class="hljs-tag">&lt;<span class="hljs-name">beans</span> <span class="hljs-attr">xmlns</span>=<span class="hljs-string">&quot;http://www.springframework.org/schema/beans&quot;</span></span><br><span class="hljs-tag">       <span class="hljs-attr">xmlns:xsi</span>=<span class="hljs-string">&quot;http://www.w3.org/2001/XMLSchema-instance&quot;</span></span><br><span class="hljs-tag">       <span class="hljs-attr">xmlns:mvc</span>=<span class="hljs-string">&quot;http://www.springframework.org/schema/mvc&quot;</span></span><br><span class="hljs-tag">       <span class="hljs-attr">xsi:schemaLocation</span>=<span class="hljs-string">&quot;http://www.springframework.org/schema/beans</span></span><br><span class="hljs-string"><span class="hljs-tag">       http://www.springframework.org/schema/beans/spring-beans.xsd</span></span><br><span class="hljs-string"><span class="hljs-tag">       http://www.springframework.org/schema/mvc</span></span><br><span class="hljs-string"><span class="hljs-tag">       http://www.springframework.org/schema/mvc/spring-mvc.xsd&quot;</span>&gt;</span><br><br>    <span class="hljs-comment">&lt;!-- 启用注解驱动 --&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">mvc:annotation-driven</span>/&gt;</span><br>    <br>    <span class="hljs-comment">&lt;!-- 拦截器配置 --&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">mvc:interceptors</span>&gt;</span><br>        <span class="hljs-tag">&lt;<span class="hljs-name">mvc:interceptor</span>&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">mvc:mapping</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/**&quot;</span>/&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">mvc:exclude-mapping</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/login&quot;</span>/&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">mvc:exclude-mapping</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/css/**&quot;</span>/&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">mvc:exclude-mapping</span> <span class="hljs-attr">path</span>=<span class="hljs-string">&quot;/js/**&quot;</span>/&gt;</span><br>            <span class="hljs-tag">&lt;<span class="hljs-name">bean</span> <span class="hljs-attr">class</span>=<span class="hljs-string">&quot;com.example.interceptor.LoginInterceptor&quot;</span>/&gt;</span><br>        <span class="hljs-tag">&lt;/<span class="hljs-name">mvc:interceptor</span>&gt;</span><br>    <span class="hljs-tag">&lt;/<span class="hljs-name">mvc:interceptors</span>&gt;</span><br>    <br>    <span class="hljs-comment">&lt;!-- 静态资源处理 --&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">mvc:resources</span> <span class="hljs-attr">mapping</span>=<span class="hljs-string">&quot;/css/**&quot;</span> <span class="hljs-attr">location</span>=<span class="hljs-string">&quot;/css/&quot;</span>/&gt;</span><br>    <span class="hljs-tag">&lt;<span class="hljs-name">mvc:resources</span> <span class="hljs-attr">mapping</span>=<span class="hljs-string">&quot;/js/**&quot;</span> <span class="hljs-attr">location</span>=<span class="hljs-string">&quot;/js/&quot;</span>/&gt;</span><br><span class="hljs-tag">&lt;/<span class="hljs-name">beans</span>&gt;</span><br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="Shiro鉴权绕过"><a href="#Shiro鉴权绕过" class="headerlink" title="Shiro鉴权绕过"></a>Shiro鉴权绕过</h2><h3 id="1-Shiro配置识别"><a href="#1-Shiro配置识别" class="headerlink" title="1. Shiro配置识别"></a>1. Shiro配置识别</h3><p>在代码审计中，搜索以下关键字来识别Shiro的使用：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 搜索关键字</span><br><span class="hljs-string">&quot;ShiroFilterFactoryBean&quot;</span><br><span class="hljs-string">&quot;DefaultWebSecurityManager&quot;</span><br><span class="hljs-string">&quot;@RequiresPermissions&quot;</span><br><span class="hljs-string">&quot;@RequiresRoles&quot;</span><br><span class="hljs-string">&quot;SecurityUtils.getSubject()&quot;</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="2-Shiro配置示例"><a href="#2-Shiro配置示例" class="headerlink" title="2. Shiro配置示例"></a>2. Shiro配置示例</h3><h4 id="基础Shiro配置"><a href="#基础Shiro配置" class="headerlink" title="基础Shiro配置"></a>基础Shiro配置</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.config;<br><br><span class="hljs-keyword">import</span> org.apache.shiro.mgt.DefaultSecurityManager;<br><span class="hljs-keyword">import</span> org.apache.shiro.realm.SimpleAccountRealm;<br><span class="hljs-keyword">import</span> org.apache.shiro.spring.web.ShiroFilterFactoryBean;<br><span class="hljs-keyword">import</span> org.apache.shiro.web.mgt.DefaultWebSecurityManager;<br><span class="hljs-keyword">import</span> org.springframework.context.annotation.Bean;<br><span class="hljs-keyword">import</span> org.springframework.context.annotation.Configuration;<br><br><span class="hljs-keyword">import</span> java.util.LinkedHashMap;<br><span class="hljs-keyword">import</span> java.util.Map;<br><br><span class="hljs-meta">@Configuration</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">ShiroConfig</span> &#123;<br><br>    <span class="hljs-meta">@Bean</span><br>    <span class="hljs-keyword">public</span> SimpleAccountRealm <span class="hljs-title function_">simpleAccountRealm</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-type">SimpleAccountRealm</span> <span class="hljs-variable">realm</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">SimpleAccountRealm</span>();<br>        <span class="hljs-comment">// 添加用户和角色</span><br>        realm.addAccount(<span class="hljs-string">&quot;admin&quot;</span>, <span class="hljs-string">&quot;123456&quot;</span>, <span class="hljs-string">&quot;admin&quot;</span>, <span class="hljs-string">&quot;user&quot;</span>);<br>        realm.addAccount(<span class="hljs-string">&quot;user&quot;</span>, <span class="hljs-string">&quot;123456&quot;</span>, <span class="hljs-string">&quot;user&quot;</span>);<br>        <span class="hljs-keyword">return</span> realm;<br>    &#125;<br><br>    <span class="hljs-meta">@Bean</span><br>    <span class="hljs-keyword">public</span> DefaultSecurityManager <span class="hljs-title function_">securityManager</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-type">DefaultWebSecurityManager</span> <span class="hljs-variable">manager</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">DefaultWebSecurityManager</span>();<br>        manager.setRealm(simpleAccountRealm());<br>        <span class="hljs-keyword">return</span> manager;<br>    &#125;<br><br>    <span class="hljs-meta">@Bean</span><br>    <span class="hljs-keyword">public</span> ShiroFilterFactoryBean <span class="hljs-title function_">shiroFilter</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-type">ShiroFilterFactoryBean</span> <span class="hljs-variable">shiroFilter</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ShiroFilterFactoryBean</span>();<br>        shiroFilter.setSecurityManager(securityManager());<br>        <br>        <span class="hljs-comment">// 设置登录、未授权页面</span><br>        shiroFilter.setLoginUrl(<span class="hljs-string">&quot;/login&quot;</span>);<br>        shiroFilter.setUnauthorizedUrl(<span class="hljs-string">&quot;/unauthorized&quot;</span>);<br>        <br>        <span class="hljs-comment">// 配置过滤规则</span><br>        Map&lt;String, String&gt; filterChainDefinitionMap = <span class="hljs-keyword">new</span> <span class="hljs-title class_">LinkedHashMap</span>&lt;&gt;();<br>        <br>        <span class="hljs-comment">// 静态资源不需要认证</span><br>        filterChainDefinitionMap.put(<span class="hljs-string">&quot;/css/**&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>        filterChainDefinitionMap.put(<span class="hljs-string">&quot;/js/**&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>        filterChainDefinitionMap.put(<span class="hljs-string">&quot;/images/**&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>        <br>        <span class="hljs-comment">// 登录相关页面不需要认证</span><br>        filterChainDefinitionMap.put(<span class="hljs-string">&quot;/login&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>        filterChainDefinitionMap.put(<span class="hljs-string">&quot;/doLogin&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>        <br>        <span class="hljs-comment">// 管理员页面需要admin角色</span><br>        filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/**&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>        <br>        <span class="hljs-comment">// 其他页面需要认证</span><br>        filterChainDefinitionMap.put(<span class="hljs-string">&quot;/**&quot;</span>, <span class="hljs-string">&quot;authc&quot;</span>);<br>        <br>        shiroFilter.setFilterChainDefinitionMap(filterChainDefinitionMap);<br>        <span class="hljs-keyword">return</span> shiroFilter;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="控制器中的Shiro注解"><a href="#控制器中的Shiro注解" class="headerlink" title="控制器中的Shiro注解"></a>控制器中的Shiro注解</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">package</span> com.example.controller;<br><br><span class="hljs-keyword">import</span> org.apache.shiro.SecurityUtils;<br><span class="hljs-keyword">import</span> org.apache.shiro.authc.UsernamePasswordToken;<br><span class="hljs-keyword">import</span> org.apache.shiro.authz.annotation.RequiresPermissions;<br><span class="hljs-keyword">import</span> org.apache.shiro.authz.annotation.RequiresRoles;<br><span class="hljs-keyword">import</span> org.apache.shiro.subject.Subject;<br><span class="hljs-keyword">import</span> org.springframework.web.bind.annotation.*;<br><br><span class="hljs-meta">@RestController</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">ShiroController</span> &#123;<br><br>    <span class="hljs-meta">@PostMapping(&quot;/doLogin&quot;)</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">login</span><span class="hljs-params">(<span class="hljs-meta">@RequestParam</span> String username, <span class="hljs-meta">@RequestParam</span> String password)</span> &#123;<br>        <span class="hljs-keyword">try</span> &#123;<br>            <span class="hljs-type">Subject</span> <span class="hljs-variable">subject</span> <span class="hljs-operator">=</span> SecurityUtils.getSubject();<br>            <span class="hljs-type">UsernamePasswordToken</span> <span class="hljs-variable">token</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">UsernamePasswordToken</span>(username, password);<br>            subject.login(token);<br>            <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;登录成功&quot;</span>;<br>        &#125; <span class="hljs-keyword">catch</span> (Exception e) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;登录失败: &quot;</span> + e.getMessage();<br>        &#125;<br>    &#125;<br><br>    <span class="hljs-meta">@GetMapping(&quot;/user/profile&quot;)</span><br>    <span class="hljs-meta">@RequiresRoles(&quot;user&quot;)</span>  <span class="hljs-comment">// 需要user角色</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">userProfile</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;用户个人资料页面&quot;</span>;<br>    &#125;<br><br>    <span class="hljs-meta">@GetMapping(&quot;/admin/users&quot;)</span><br>    <span class="hljs-meta">@RequiresRoles(&quot;admin&quot;)</span>  <span class="hljs-comment">// 需要admin角色</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">adminUsers</span><span class="hljs-params">()</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;管理员用户管理页面&quot;</span>;<br>    &#125;<br><br>    <span class="hljs-meta">@PostMapping(&quot;/admin/delete&quot;)</span><br>    <span class="hljs-meta">@RequiresPermissions(&quot;user:delete&quot;)</span>  <span class="hljs-comment">// 需要删除用户权限</span><br>    <span class="hljs-keyword">public</span> String <span class="hljs-title function_">deleteUser</span><span class="hljs-params">(<span class="hljs-meta">@RequestParam</span> String userId)</span> &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;删除用户: &quot;</span> + userId;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-Shiro绕过技术"><a href="#3-Shiro绕过技术" class="headerlink" title="3. Shiro绕过技术"></a>3. Shiro绕过技术</h3><h4 id="CVE-2020-1957-路径遍历绕过"><a href="#CVE-2020-1957-路径遍历绕过" class="headerlink" title="CVE-2020-1957 - 路径遍历绕过"></a>CVE-2020-1957 - 路径遍历绕过</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 原始受保护路径</span><br>/admin/users<br><br><span class="hljs-comment"># 绕过Payload</span><br>/admin/users/<br>/admin/users/../users<br>/admin/./users<br>/admin//users<br></code></pre></td></tr></table></figure>
+
+<h4 id="CVE-2020-11989-路径参数绕过"><a href="#CVE-2020-11989-路径参数绕过" class="headerlink" title="CVE-2020-11989 - 路径参数绕过"></a>CVE-2020-11989 - 路径参数绕过</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 路径参数绕过</span><br>/admin/users;param=value<br>/admin/users;.css<br>/admin/users;jsessionid=<span class="hljs-built_in">test</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="CVE-2020-13933-特殊字符绕过"><a href="#CVE-2020-13933-特殊字符绕过" class="headerlink" title="CVE-2020-13933 - 特殊字符绕过"></a>CVE-2020-13933 - 特殊字符绕过</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 使用特殊字符</span><br>/admin/%3Busers<br>/admin%2Fusers<br>/admin\<span class="hljs-built_in">users</span>    <span class="hljs-comment"># Windows环境</span><br></code></pre></td></tr></table></figure>
+
+<h4 id="CVE-2021-41303-正则表达式绕过"><a href="#CVE-2021-41303-正则表达式绕过" class="headerlink" title="CVE-2021-41303 - 正则表达式绕过"></a>CVE-2021-41303 - 正则表达式绕过</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 当使用通配符匹配时</span><br><span class="hljs-comment"># 配置: /admin/* = roles[admin]</span><br><br><span class="hljs-comment"># 绕过方式</span><br>/admin          <span class="hljs-comment"># 不匹配 /admin/*</span><br>/admin/         <span class="hljs-comment"># 匹配</span><br>/admin/./       <span class="hljs-comment"># 可能绕过</span><br>/admin/../admin <span class="hljs-comment"># 可能绕过</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="4-高级Shiro配置"><a href="#4-高级Shiro配置" class="headerlink" title="4. 高级Shiro配置"></a>4. 高级Shiro配置</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Bean</span><br><span class="hljs-keyword">public</span> ShiroFilterFactoryBean <span class="hljs-title function_">shiroFilter</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-type">ShiroFilterFactoryBean</span> <span class="hljs-variable">shiroFilter</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ShiroFilterFactoryBean</span>();<br>    shiroFilter.setSecurityManager(securityManager());<br>    <br>    Map&lt;String, String&gt; filterChainDefinitionMap = <span class="hljs-keyword">new</span> <span class="hljs-title class_">LinkedHashMap</span>&lt;&gt;();<br>    <br>    <span class="hljs-comment">// 更严格的配置</span><br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/login&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/css/**&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/js/**&quot;</span>, <span class="hljs-string">&quot;anon&quot;</span>);<br>    <br>    <span class="hljs-comment">// 使用精确匹配而不是通配符</span><br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/users&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/config&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/logs&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>    <br>    <span class="hljs-comment">// 最后的兜底规则</span><br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/**&quot;</span>, <span class="hljs-string">&quot;authc&quot;</span>);<br>    <br>    shiroFilter.setFilterChainDefinitionMap(filterChainDefinitionMap);<br>    <span class="hljs-keyword">return</span> shiroFilter;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="其他常见绕过技术"><a href="#其他常见绕过技术" class="headerlink" title="其他常见绕过技术"></a>其他常见绕过技术</h2><h3 id="1-HTTP方法绕过"><a href="#1-HTTP方法绕过" class="headerlink" title="1. HTTP方法绕过"></a>1. HTTP方法绕过</h3><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 如果只限制了GET请求</span><br><span class="hljs-meta">@GetMapping(&quot;/admin/delete&quot;)</span><br><span class="hljs-keyword">public</span> String <span class="hljs-title function_">deleteUser</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;删除成功&quot;</span>;<br>&#125;<br><br><span class="hljs-comment">// 尝试其他HTTP方法</span><br>POST /admin/delete<br>PUT /admin/delete<br>DELETE /admin/delete<br>PATCH /admin/delete<br>OPTIONS /admin/delete<br>HEAD /admin/delete<br></code></pre></td></tr></table></figure>
+
+<h3 id="2-大小写绕过"><a href="#2-大小写绕过" class="headerlink" title="2. 大小写绕过"></a>2. 大小写绕过</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 原始路径</span><br>/Admin/Users<br><br><span class="hljs-comment"># 大小写变体</span><br>/admin/users<br>/ADMIN/USERS<br>/Admin/users<br>/admin/Users<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-编码绕过"><a href="#3-编码绕过" class="headerlink" title="3. 编码绕过"></a>3. 编码绕过</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># URL编码</span><br>/%61dmin/users          <span class="hljs-comment"># a -&gt; %61</span><br>/admin/%75sers          <span class="hljs-comment"># u -&gt; %75</span><br><br><span class="hljs-comment"># 双重URL编码</span><br>/%2561dmin/users        <span class="hljs-comment"># %61 -&gt; %2561</span><br><br><span class="hljs-comment"># Unicode编码</span><br>/\u0061dmin/users       <span class="hljs-comment"># a -&gt; \u0061</span><br><br><span class="hljs-comment"># HTML实体编码</span><br>/&amp;<span class="hljs-comment">#97;dmin/users        # a -&gt; &amp;#97;</span><br></code></pre></td></tr></table></figure>
+
+<h3 id="4-路径穿越绕过"><a href="#4-路径穿越绕过" class="headerlink" title="4. 路径穿越绕过"></a>4. 路径穿越绕过</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 点斜杠绕过</span><br>/admin/../admin/users<br>/./admin/users<br>/admin/./users<br><br><span class="hljs-comment"># 双点绕过</span><br>/admin/config/../users<br>/admin/users/../../admin/users<br><br><span class="hljs-comment"># 多级穿越</span><br>/public/../admin/users<br>/public/../../admin/users<br></code></pre></td></tr></table></figure>
+
+<h3 id="5-特殊字符绕过"><a href="#5-特殊字符绕过" class="headerlink" title="5. 特殊字符绕过"></a>5. 特殊字符绕过</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs bash"><span class="hljs-comment"># 空字节绕过（较老的版本）</span><br>/admin/users%00.css<br><br><span class="hljs-comment"># 换行符绕过</span><br>/admin/users%0a<br>/admin/users%0d<br><br><span class="hljs-comment"># 制表符绕过</span><br>/admin/users%09<br><br><span class="hljs-comment"># 空格绕过</span><br>/admin/users%20<br></code></pre></td></tr></table></figure>
+
+<h3 id="6-请求头绕过"><a href="#6-请求头绕过" class="headerlink" title="6. 请求头绕过"></a>6. 请求头绕过</h3><figure class="highlight http"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs http"># X-Original-URL绕过<br><span class="hljs-keyword">GET</span> <span class="hljs-string">/public/harmless</span> <span class="hljs-meta">HTTP/1.1</span><br><span class="hljs-attribute">Host</span><span class="hljs-punctuation">: </span>example.com<br><span class="hljs-attribute">X-Original-URL</span><span class="hljs-punctuation">: </span>/admin/users<br><br><span class="language-routeros"><span class="hljs-comment"># X-Rewrite-URL绕过</span></span><br><span class="language-routeros"><span class="hljs-built_in">GET</span> /public/harmless HTTP/1.1</span><br><span class="language-routeros">Host: example.com</span><br><span class="language-routeros">X-Rewrite-URL: /admin<span class="hljs-built_in">/users</span></span><br><span class="hljs-built_in"><span class="language-routeros"></span></span><br><span class="language-routeros"><span class="hljs-comment"># X-Forwarded-For伪造</span></span><br><span class="language-routeros"><span class="hljs-built_in">GET</span> /admin<span class="hljs-built_in">/users </span>HTTP/1.1</span><br><span class="language-routeros">Host: example.com</span><br><span class="language-routeros">X-Forwarded-For: 127.0.0.1</span><br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="防护建议"><a href="#防护建议" class="headerlink" title="防护建议"></a>防护建议</h2><h3 id="1-安全编码实践"><a href="#1-安全编码实践" class="headerlink" title="1. 安全编码实践"></a>1. 安全编码实践</h3><h4 id="正确的路径匹配"><a href="#正确的路径匹配" class="headerlink" title="正确的路径匹配"></a>正确的路径匹配</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Component</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">SecureFilter</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Filter</span> &#123;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doFilter</span><span class="hljs-params">(ServletRequest request, ServletResponse response, </span><br><span class="hljs-params">                        FilterChain chain)</span> <span class="hljs-keyword">throws</span> IOException, ServletException &#123;<br>        <br>        <span class="hljs-type">HttpServletRequest</span> <span class="hljs-variable">httpRequest</span> <span class="hljs-operator">=</span> (HttpServletRequest) request;<br>        <br>        <span class="hljs-comment">// 使用getServletPath()而不是getRequestURI()</span><br>        <span class="hljs-type">String</span> <span class="hljs-variable">servletPath</span> <span class="hljs-operator">=</span> httpRequest.getServletPath();<br>        <span class="hljs-type">String</span> <span class="hljs-variable">pathInfo</span> <span class="hljs-operator">=</span> httpRequest.getPathInfo();<br>        <span class="hljs-type">String</span> <span class="hljs-variable">fullPath</span> <span class="hljs-operator">=</span> servletPath + (pathInfo != <span class="hljs-literal">null</span> ? pathInfo : <span class="hljs-string">&quot;&quot;</span>);<br>        <br>        <span class="hljs-comment">// 标准化路径，移除路径遍历</span><br>        <span class="hljs-type">String</span> <span class="hljs-variable">normalizedPath</span> <span class="hljs-operator">=</span> Paths.get(fullPath).normalize().toString();<br>        normalizedPath = normalizedPath.replace(<span class="hljs-string">&quot;\\&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>); <span class="hljs-comment">// Windows路径分隔符</span><br>        <br>        <span class="hljs-keyword">if</span> (isProtectedPath(normalizedPath)) &#123;<br>            <span class="hljs-comment">// 执行认证检查</span><br>            <span class="hljs-keyword">if</span> (!isAuthenticated(httpRequest)) &#123;<br>                ((HttpServletResponse) response).setStatus(<span class="hljs-number">401</span>);<br>                <span class="hljs-keyword">return</span>;<br>            &#125;<br>        &#125;<br>        <br>        chain.doFilter(request, response);<br>    &#125;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">isProtectedPath</span><span class="hljs-params">(String path)</span> &#123;<br>        <span class="hljs-comment">// 使用精确匹配或正则表达式</span><br>        String[] protectedPaths = &#123;<br>            <span class="hljs-string">&quot;/admin/users&quot;</span>,<br>            <span class="hljs-string">&quot;/admin/config&quot;</span>,<br>            <span class="hljs-string">&quot;/admin/logs&quot;</span><br>        &#125;;<br>        <br>        <span class="hljs-keyword">for</span> (String protectedPath : protectedPaths) &#123;<br>            <span class="hljs-keyword">if</span> (path.equals(protectedPath)) &#123;<br>                <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>            &#125;<br>        &#125;<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="Spring-Security推荐配置"><a href="#Spring-Security推荐配置" class="headerlink" title="Spring Security推荐配置"></a>Spring Security推荐配置</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Configuration</span><br><span class="hljs-meta">@EnableWebSecurity</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">SecurityConfig</span> &#123;<br><br>    <span class="hljs-meta">@Bean</span><br>    <span class="hljs-keyword">public</span> SecurityFilterChain <span class="hljs-title function_">filterChain</span><span class="hljs-params">(HttpSecurity http)</span> <span class="hljs-keyword">throws</span> Exception &#123;<br>        http<br>            .authorizeHttpRequests(authz -&gt; authz<br>                .requestMatchers(<span class="hljs-string">&quot;/login&quot;</span>, <span class="hljs-string">&quot;/register&quot;</span>, <span class="hljs-string">&quot;/css/**&quot;</span>, <span class="hljs-string">&quot;/js/**&quot;</span>).permitAll()<br>                .requestMatchers(<span class="hljs-string">&quot;/admin/**&quot;</span>).hasRole(<span class="hljs-string">&quot;ADMIN&quot;</span>)<br>                .anyRequest().authenticated()<br>            )<br>            .formLogin(form -&gt; form<br>                .loginPage(<span class="hljs-string">&quot;/login&quot;</span>)<br>                .defaultSuccessUrl(<span class="hljs-string">&quot;/dashboard&quot;</span>)<br>                .permitAll()<br>            )<br>            .logout(logout -&gt; logout<br>                .logoutSuccessUrl(<span class="hljs-string">&quot;/login?logout&quot;</span>)<br>                .permitAll()<br>            )<br>            <span class="hljs-comment">// 防止路径遍历攻击</span><br>            .requestMatcher(<span class="hljs-keyword">new</span> <span class="hljs-title class_">StrictHttpFirewall</span>())<br>            <span class="hljs-comment">// 防止CSRF攻击</span><br>            .csrf(csrf -&gt; csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));<br>            <br>        <span class="hljs-keyword">return</span> http.build();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="2-框架级别防护"><a href="#2-框架级别防护" class="headerlink" title="2. 框架级别防护"></a>2. 框架级别防护</h3><h4 id="Shiro安全配置"><a href="#Shiro安全配置" class="headerlink" title="Shiro安全配置"></a>Shiro安全配置</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Bean</span><br><span class="hljs-keyword">public</span> ShiroFilterFactoryBean <span class="hljs-title function_">shiroFilter</span><span class="hljs-params">()</span> &#123;<br>    <span class="hljs-type">ShiroFilterFactoryBean</span> <span class="hljs-variable">shiroFilter</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ShiroFilterFactoryBean</span>();<br>    <br>    <span class="hljs-comment">// 使用严格的路径匹配</span><br>    Map&lt;String, String&gt; filterChainDefinitionMap = <span class="hljs-keyword">new</span> <span class="hljs-title class_">LinkedHashMap</span>&lt;&gt;();<br>    <br>    <span class="hljs-comment">// 明确指定每个路径，避免使用通配符</span><br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/users&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/config&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/logs&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>    <br>    <span class="hljs-comment">// 对于必须使用通配符的情况，要格外小心</span><br>    filterChainDefinitionMap.put(<span class="hljs-string">&quot;/api/admin/**&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br>    <br>    shiroFilter.setFilterChainDefinitionMap(filterChainDefinitionMap);<br>    <span class="hljs-keyword">return</span> shiroFilter;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="3-通用安全建议"><a href="#3-通用安全建议" class="headerlink" title="3. 通用安全建议"></a>3. 通用安全建议</h3><ol>
+<li><p><strong>使用白名单而不是黑名单</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 好的做法：明确允许的路径</span><br><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> Set&lt;String&gt; ALLOWED_PATHS = Set.of(<br>    <span class="hljs-string">&quot;/login&quot;</span>, <span class="hljs-string">&quot;/register&quot;</span>, <span class="hljs-string">&quot;/public&quot;</span>, <span class="hljs-string">&quot;/css&quot;</span>, <span class="hljs-string">&quot;/js&quot;</span><br>);<br><br><span class="hljs-comment">// 避免：基于黑名单的过滤</span><br><span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> Set&lt;String&gt; BLOCKED_PATHS = Set.of(<br>    <span class="hljs-string">&quot;/admin&quot;</span>, <span class="hljs-string">&quot;/config&quot;</span><br>);<br></code></pre></td></tr></table></figure>
+</li>
+<li><p><strong>规范化路径处理</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> String <span class="hljs-title function_">normalizePath</span><span class="hljs-params">(String path)</span> &#123;<br>    <span class="hljs-comment">// 移除路径参数</span><br>    <span class="hljs-type">int</span> <span class="hljs-variable">semicolonIndex</span> <span class="hljs-operator">=</span> path.indexOf(<span class="hljs-string">&#x27;;&#x27;</span>);<br>    <span class="hljs-keyword">if</span> (semicolonIndex != -<span class="hljs-number">1</span>) &#123;<br>        path = path.substring(<span class="hljs-number">0</span>, semicolonIndex);<br>    &#125;<br>    <br>    <span class="hljs-comment">// 标准化路径</span><br>    <span class="hljs-type">Path</span> <span class="hljs-variable">normalizedPath</span> <span class="hljs-operator">=</span> Paths.get(path).normalize();<br>    <span class="hljs-keyword">return</span> normalizedPath.toString().replace(<span class="hljs-string">&quot;\\&quot;</span>, <span class="hljs-string">&quot;/&quot;</span>);<br>&#125;<br></code></pre></td></tr></table></figure>
+</li>
+<li><p><strong>严格的输入验证</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-keyword">public</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">isValidPath</span><span class="hljs-params">(String path)</span> &#123;<br>    <span class="hljs-comment">// 检查路径长度</span><br>    <span class="hljs-keyword">if</span> (path.length() &gt; <span class="hljs-number">200</span>) &#123;<br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>    <br>    <span class="hljs-comment">// 检查危险字符</span><br>    String[] dangerousPatterns = &#123;<br>        <span class="hljs-string">&quot;..&quot;</span>, <span class="hljs-string">&quot;//&quot;</span>, <span class="hljs-string">&quot;\\&quot;</span>, <span class="hljs-string">&quot;%00&quot;</span>, <span class="hljs-string">&quot;%2e&quot;</span>, <span class="hljs-string">&quot;%2f&quot;</span>, <span class="hljs-string">&quot;\r&quot;</span>, <span class="hljs-string">&quot;\n&quot;</span>, <span class="hljs-string">&quot;\t&quot;</span><br>    &#125;;<br>    <br>    <span class="hljs-keyword">for</span> (String pattern : dangerousPatterns) &#123;<br>        <span class="hljs-keyword">if</span> (path.contains(pattern)) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>        &#125;<br>    &#125;<br>    <br>    <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>&#125;<br></code></pre></td></tr></table></figure>
+</li>
+<li><p><strong>日志记录和监控</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Component</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">SecurityAuditFilter</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Filter</span> &#123;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">Logger</span> <span class="hljs-variable">logger</span> <span class="hljs-operator">=</span> LoggerFactory.getLogger(SecurityAuditFilter.class);<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doFilter</span><span class="hljs-params">(ServletRequest request, ServletResponse response, </span><br><span class="hljs-params">                        FilterChain chain)</span> <span class="hljs-keyword">throws</span> IOException, ServletException &#123;<br>        <br>        <span class="hljs-type">HttpServletRequest</span> <span class="hljs-variable">httpRequest</span> <span class="hljs-operator">=</span> (HttpServletRequest) request;<br>        <span class="hljs-type">String</span> <span class="hljs-variable">requestURI</span> <span class="hljs-operator">=</span> httpRequest.getRequestURI();<br>        <span class="hljs-type">String</span> <span class="hljs-variable">remoteAddr</span> <span class="hljs-operator">=</span> httpRequest.getRemoteAddr();<br>        <span class="hljs-type">String</span> <span class="hljs-variable">userAgent</span> <span class="hljs-operator">=</span> httpRequest.getHeader(<span class="hljs-string">&quot;User-Agent&quot;</span>);<br>        <br>        <span class="hljs-comment">// 记录可疑请求</span><br>        <span class="hljs-keyword">if</span> (isSuspiciousRequest(requestURI)) &#123;<br>            logger.warn(<span class="hljs-string">&quot;可疑请求检测: URI=&#123;&#125;, IP=&#123;&#125;, UserAgent=&#123;&#125;&quot;</span>, <br>                       requestURI, remoteAddr, userAgent);<br>        &#125;<br>        <br>        chain.doFilter(request, response);<br>    &#125;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">isSuspiciousRequest</span><span class="hljs-params">(String uri)</span> &#123;<br>        <span class="hljs-comment">// 检测路径遍历</span><br>        <span class="hljs-keyword">if</span> (uri.contains(<span class="hljs-string">&quot;../&quot;</span>) || uri.contains(<span class="hljs-string">&quot;..\\&quot;</span>)) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br>        <br>        <span class="hljs-comment">// 检测路径参数绕过尝试</span><br>        <span class="hljs-keyword">if</span> (uri.contains(<span class="hljs-string">&quot;;&quot;</span>) &amp;&amp; (uri.contains(<span class="hljs-string">&quot;.css&quot;</span>) || uri.contains(<span class="hljs-string">&quot;.js&quot;</span>))) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br>        <br>        <span class="hljs-comment">// 检测编码绕过尝试</span><br>        <span class="hljs-keyword">if</span> (uri.contains(<span class="hljs-string">&quot;%2e&quot;</span>) || uri.contains(<span class="hljs-string">&quot;%2f&quot;</span>) || uri.contains(<span class="hljs-string">&quot;%5c&quot;</span>)) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br>        <br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure></li>
+</ol>
+<h3 id="4-测试和验证"><a href="#4-测试和验证" class="headerlink" title="4. 测试和验证"></a>4. 测试和验证</h3><h4 id="安全测试脚本示例"><a href="#安全测试脚本示例" class="headerlink" title="安全测试脚本示例"></a>安全测试脚本示例</h4><figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br></pre></td><td class="code"><pre><code class="hljs python"><span class="hljs-comment">#!/usr/bin/env python3</span><br><span class="hljs-keyword">import</span> requests<br><span class="hljs-keyword">import</span> urllib.parse<br><br><span class="hljs-keyword">def</span> <span class="hljs-title function_">test_auth_bypass</span>(<span class="hljs-params">base_url, protected_paths</span>):<br>    <span class="hljs-string">&quot;&quot;&quot;测试鉴权绕过漏洞&quot;&quot;&quot;</span><br>    <br>    bypass_payloads = [<br>        <span class="hljs-comment"># 路径参数绕过</span><br>        <span class="hljs-string">&quot;;.css&quot;</span>,<br>        <span class="hljs-string">&quot;;.js&quot;</span>, <br>        <span class="hljs-string">&quot;;.png&quot;</span>,<br>        <span class="hljs-string">&quot;;jsessionid=test&quot;</span>,<br>        <br>        <span class="hljs-comment"># 路径遍历绕过</span><br>        <span class="hljs-string">&quot;/../&quot;</span>,<br>        <span class="hljs-string">&quot;/./&quot;</span>,<br>        <span class="hljs-string">&quot;//&quot;</span>,<br>        <br>        <span class="hljs-comment"># 编码绕过</span><br>        <span class="hljs-string">&quot;/%2e%2e/&quot;</span>,<br>        <span class="hljs-string">&quot;/%2f&quot;</span>,<br>        <span class="hljs-string">&quot;/%5c&quot;</span>,<br>        <br>        <span class="hljs-comment"># 大小写绕过</span><br>        <span class="hljs-string">&quot;&quot;</span>,  <span class="hljs-comment"># 原始路径的大小写变体将在循环中处理</span><br>    ]<br>    <br>    results = []<br>    <br>    <span class="hljs-keyword">for</span> path <span class="hljs-keyword">in</span> protected_paths:<br>        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;\n测试路径: <span class="hljs-subst">&#123;path&#125;</span>&quot;</span>)<br>        <br>        <span class="hljs-comment"># 测试原始路径（应该被拒绝）</span><br>        response = requests.get(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;base_url&#125;</span><span class="hljs-subst">&#123;path&#125;</span>&quot;</span>)<br>        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;原始请求状态码: <span class="hljs-subst">&#123;response.status_code&#125;</span>&quot;</span>)<br>        <br>        <span class="hljs-comment"># 测试各种绕过payload</span><br>        <span class="hljs-keyword">for</span> payload <span class="hljs-keyword">in</span> bypass_payloads:<br>            test_url = <span class="hljs-string">f&quot;<span class="hljs-subst">&#123;base_url&#125;</span><span class="hljs-subst">&#123;path&#125;</span><span class="hljs-subst">&#123;payload&#125;</span>&quot;</span><br>            <br>            <span class="hljs-keyword">try</span>:<br>                response = requests.get(test_url, timeout=<span class="hljs-number">10</span>)<br>                <span class="hljs-keyword">if</span> response.status_code == <span class="hljs-number">200</span>:<br>                    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;[!] 可能的绕过: <span class="hljs-subst">&#123;test_url&#125;</span> -&gt; <span class="hljs-subst">&#123;response.status_code&#125;</span>&quot;</span>)<br>                    results.append(&#123;<br>                        <span class="hljs-string">&#x27;url&#x27;</span>: test_url,<br>                        <span class="hljs-string">&#x27;status&#x27;</span>: response.status_code,<br>                        <span class="hljs-string">&#x27;payload&#x27;</span>: payload<br>                    &#125;)<br>                <span class="hljs-keyword">else</span>:<br>                    <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;[-] 正常阻止: <span class="hljs-subst">&#123;test_url&#125;</span> -&gt; <span class="hljs-subst">&#123;response.status_code&#125;</span>&quot;</span>)<br>            <span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:<br>                <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;[!] 请求异常: <span class="hljs-subst">&#123;test_url&#125;</span> -&gt; <span class="hljs-subst">&#123;<span class="hljs-built_in">str</span>(e)&#125;</span>&quot;</span>)<br>        <br>        <span class="hljs-comment"># 测试大小写绕过</span><br>        case_variants = [<br>            path.upper(),<br>            path.lower(), <br>            path.capitalize(),<br>            <span class="hljs-string">&#x27;&#x27;</span>.join(c.upper() <span class="hljs-keyword">if</span> i % <span class="hljs-number">2</span> == <span class="hljs-number">0</span> <span class="hljs-keyword">else</span> c.lower() <br>                   <span class="hljs-keyword">for</span> i, c <span class="hljs-keyword">in</span> <span class="hljs-built_in">enumerate</span>(path))<br>        ]<br>        <br>        <span class="hljs-keyword">for</span> variant <span class="hljs-keyword">in</span> case_variants:<br>            <span class="hljs-keyword">if</span> variant != path:  <span class="hljs-comment"># 跳过原始路径</span><br>                <span class="hljs-keyword">try</span>:<br>                    response = requests.get(<span class="hljs-string">f&quot;<span class="hljs-subst">&#123;base_url&#125;</span><span class="hljs-subst">&#123;variant&#125;</span>&quot;</span>, timeout=<span class="hljs-number">10</span>)<br>                    <span class="hljs-keyword">if</span> response.status_code == <span class="hljs-number">200</span>:<br>                        <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;[!] 大小写绕过: <span class="hljs-subst">&#123;variant&#125;</span> -&gt; <span class="hljs-subst">&#123;response.status_code&#125;</span>&quot;</span>)<br>                        results.append(&#123;<br>                            <span class="hljs-string">&#x27;url&#x27;</span>: <span class="hljs-string">f&quot;<span class="hljs-subst">&#123;base_url&#125;</span><span class="hljs-subst">&#123;variant&#125;</span>&quot;</span>,<br>                            <span class="hljs-string">&#x27;status&#x27;</span>: response.status_code,<br>                            <span class="hljs-string">&#x27;payload&#x27;</span>: <span class="hljs-string">&#x27;case_bypass&#x27;</span><br>                        &#125;)<br>                <span class="hljs-keyword">except</span> Exception <span class="hljs-keyword">as</span> e:<br>                    <span class="hljs-keyword">pass</span><br>    <br>    <span class="hljs-keyword">return</span> results<br><br><span class="hljs-comment"># 使用示例</span><br><span class="hljs-keyword">if</span> __name__ == <span class="hljs-string">&quot;__main__&quot;</span>:<br>    target_url = <span class="hljs-string">&quot;http://localhost:8080&quot;</span><br>    protected_endpoints = [<br>        <span class="hljs-string">&quot;/admin/users&quot;</span>,<br>        <span class="hljs-string">&quot;/admin/config&quot;</span>, <br>        <span class="hljs-string">&quot;/admin/logs&quot;</span>,<br>        <span class="hljs-string">&quot;/api/admin/delete&quot;</span><br>    ]<br>    <br>    vulnerabilities = test_auth_bypass(target_url, protected_endpoints)<br>    <br>    <span class="hljs-keyword">if</span> vulnerabilities:<br>        <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\n&quot;</span> + <span class="hljs-string">&quot;=&quot;</span>*<span class="hljs-number">50</span>)<br>        <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;发现的潜在绕过漏洞:&quot;</span>)<br>        <span class="hljs-keyword">for</span> vuln <span class="hljs-keyword">in</span> vulnerabilities:<br>            <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;URL: <span class="hljs-subst">&#123;vuln[<span class="hljs-string">&#x27;url&#x27;</span>]&#125;</span>&quot;</span>)<br>            <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;状态码: <span class="hljs-subst">&#123;vuln[<span class="hljs-string">&#x27;status&#x27;</span>]&#125;</span>&quot;</span>)<br>            <span class="hljs-built_in">print</span>(<span class="hljs-string">f&quot;Payload: <span class="hljs-subst">&#123;vuln[<span class="hljs-string">&#x27;payload&#x27;</span>]&#125;</span>&quot;</span>)<br>            <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;-&quot;</span> * <span class="hljs-number">30</span>)<br>    <span class="hljs-keyword">else</span>:<br>        <span class="hljs-built_in">print</span>(<span class="hljs-string">&quot;\n未发现明显的鉴权绕过漏洞&quot;</span>)<br></code></pre></td></tr></table></figure>
+
+<h4 id="Burp-Suite扩展检测"><a href="#Burp-Suite扩展检测" class="headerlink" title="Burp Suite扩展检测"></a>Burp Suite扩展检测</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// Burp Suite被动扫描器扩展示例</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">AuthBypassScanner</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">IScannerCheck</span> &#123;<br>    <br>    <span class="hljs-meta">@Override</span> <br>    <span class="hljs-keyword">public</span> List&lt;IScanIssue&gt; <span class="hljs-title function_">doPassiveScan</span><span class="hljs-params">(IHttpRequestResponse baseRequestResponse)</span> &#123;<br>        List&lt;IScanIssue&gt; issues = <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>        <br>        <span class="hljs-type">IRequestInfo</span> <span class="hljs-variable">reqInfo</span> <span class="hljs-operator">=</span> helpers.analyzeRequest(baseRequestResponse);<br>        <span class="hljs-type">String</span> <span class="hljs-variable">url</span> <span class="hljs-operator">=</span> reqInfo.getUrl().toString();<br>        <br>        <span class="hljs-comment">// 检测可能的绕过模式</span><br>        <span class="hljs-keyword">if</span> (url.contains(<span class="hljs-string">&quot;;.css&quot;</span>) || url.contains(<span class="hljs-string">&quot;;.js&quot;</span>)) &#123;<br>            issues.add(createScanIssue(baseRequestResponse, <br>                <span class="hljs-string">&quot;可能的路径参数绕过&quot;</span>, <br>                <span class="hljs-string">&quot;检测到URL中包含路径参数，可能用于绕过访问控制&quot;</span>));<br>        &#125;<br>        <br>        <span class="hljs-keyword">if</span> (url.contains(<span class="hljs-string">&quot;../&quot;</span>) || url.contains(<span class="hljs-string">&quot;%2e%2e&quot;</span>)) &#123;<br>            issues.add(createScanIssue(baseRequestResponse,<br>                <span class="hljs-string">&quot;路径遍历尝试&quot;</span>,<br>                <span class="hljs-string">&quot;检测到路径遍历模式，可能用于绕过访问控制&quot;</span>));<br>        &#125;<br>        <br>        <span class="hljs-keyword">return</span> issues;<br>    &#125;<br>    <br>    <span class="hljs-meta">@Override</span><br>    <span class="hljs-keyword">public</span> List&lt;IScanIssue&gt; <span class="hljs-title function_">doActiveScan</span><span class="hljs-params">(IHttpRequestResponse baseRequestResponse, </span><br><span class="hljs-params">                                        IScannerInsertionPoint insertionPoint)</span> &#123;<br>        <span class="hljs-comment">// 主动扫描实现</span><br>        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">ArrayList</span>&lt;&gt;();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h3 id="5-应急响应和修复"><a href="#5-应急响应和修复" class="headerlink" title="5. 应急响应和修复"></a>5. 应急响应和修复</h3><h4 id="临时修复方案"><a href="#临时修复方案" class="headerlink" title="临时修复方案"></a>临时修复方案</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-meta">@Component</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">class</span> <span class="hljs-title class_">EmergencySecurityFilter</span> <span class="hljs-keyword">implements</span> <span class="hljs-title class_">Filter</span> &#123;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-keyword">static</span> <span class="hljs-keyword">final</span> <span class="hljs-type">Logger</span> <span class="hljs-variable">logger</span> <span class="hljs-operator">=</span> LoggerFactory.getLogger(EmergencySecurityFilter.class);<br>    <br>    <span class="hljs-meta">@Override</span> <br>    <span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">doFilter</span><span class="hljs-params">(ServletRequest request, ServletResponse response, </span><br><span class="hljs-params">                        FilterChain chain)</span> <span class="hljs-keyword">throws</span> IOException, ServletException &#123;<br>        <br>        <span class="hljs-type">HttpServletRequest</span> <span class="hljs-variable">httpRequest</span> <span class="hljs-operator">=</span> (HttpServletRequest) request;<br>        <span class="hljs-type">HttpServletResponse</span> <span class="hljs-variable">httpResponse</span> <span class="hljs-operator">=</span> (HttpServletResponse) response;<br>        <br>        <span class="hljs-type">String</span> <span class="hljs-variable">requestURI</span> <span class="hljs-operator">=</span> httpRequest.getRequestURI();<br>        <span class="hljs-type">String</span> <span class="hljs-variable">remoteAddr</span> <span class="hljs-operator">=</span> getClientIP(httpRequest);<br>        <br>        <span class="hljs-comment">// 紧急阻止所有可疑请求</span><br>        <span class="hljs-keyword">if</span> (isEmergencyBlock(requestURI)) &#123;<br>            logger.error(<span class="hljs-string">&quot;紧急阻止可疑请求: URI=&#123;&#125;, IP=&#123;&#125;&quot;</span>, requestURI, remoteAddr);<br>            httpResponse.setStatus(HttpServletResponse.SC_FORBIDDEN);<br>            httpResponse.getWriter().write(<span class="hljs-string">&quot;Request blocked for security reasons&quot;</span>);<br>            <span class="hljs-keyword">return</span>;<br>        &#125;<br>        <br>        chain.doFilter(request, response);<br>    &#125;<br>    <br>    <span class="hljs-keyword">private</span> <span class="hljs-type">boolean</span> <span class="hljs-title function_">isEmergencyBlock</span><span class="hljs-params">(String uri)</span> &#123;<br>        <span class="hljs-comment">// 阻止所有包含路径参数的请求</span><br>        <span class="hljs-keyword">if</span> (uri.contains(<span class="hljs-string">&quot;;&quot;</span>)) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br>        <br>        <span class="hljs-comment">// 阻止路径遍历尝试</span><br>        <span class="hljs-keyword">if</span> (uri.contains(<span class="hljs-string">&quot;../&quot;</span>) || uri.contains(<span class="hljs-string">&quot;..\\&quot;</span>) || <br>            uri.contains(<span class="hljs-string">&quot;%2e%2e&quot;</span>) || uri.contains(<span class="hljs-string">&quot;%2f%2e%2e&quot;</span>)) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br>        <br>        <span class="hljs-comment">// 阻止双重编码</span><br>        <span class="hljs-keyword">if</span> (uri.contains(<span class="hljs-string">&quot;%25&quot;</span>)) &#123;<br>            <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;<br>        &#125;<br>        <br>        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;<br>    &#125;<br>    <br>    <span class="hljs-keyword">private</span> String <span class="hljs-title function_">getClientIP</span><span class="hljs-params">(HttpServletRequest request)</span> &#123;<br>        <span class="hljs-type">String</span> <span class="hljs-variable">xForwardedFor</span> <span class="hljs-operator">=</span> request.getHeader(<span class="hljs-string">&quot;X-Forwarded-For&quot;</span>);<br>        <span class="hljs-keyword">if</span> (xForwardedFor != <span class="hljs-literal">null</span> &amp;&amp; !xForwardedFor.isEmpty()) &#123;<br>            <span class="hljs-keyword">return</span> xForwardedFor.split(<span class="hljs-string">&quot;,&quot;</span>)[<span class="hljs-number">0</span>].trim();<br>        &#125;<br>        <br>        <span class="hljs-type">String</span> <span class="hljs-variable">xRealIP</span> <span class="hljs-operator">=</span> request.getHeader(<span class="hljs-string">&quot;X-Real-IP&quot;</span>);<br>        <span class="hljs-keyword">if</span> (xRealIP != <span class="hljs-literal">null</span> &amp;&amp; !xRealIP.isEmpty()) &#123;<br>            <span class="hljs-keyword">return</span> xRealIP;<br>        &#125;<br>        <br>        <span class="hljs-keyword">return</span> request.getRemoteAddr();<br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure>
+
+<h4 id="配置修复检查清单"><a href="#配置修复检查清单" class="headerlink" title="配置修复检查清单"></a>配置修复检查清单</h4><p><strong>Servlet应用检查清单：</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 检查所有Filter的URL匹配模式</li>
+<li><input disabled="" type="checkbox"> 使用<code>getServletPath()</code>而不是<code>getRequestURI()</code></li>
+<li><input disabled="" type="checkbox"> 实现路径标准化处理</li>
+<li><input disabled="" type="checkbox"> 添加路径参数清理逻辑</li>
+<li><input disabled="" type="checkbox"> 启用请求日志记录</li>
+</ul>
+<p><strong>Spring应用检查清单：</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 检查拦截器的路径匹配配置</li>
+<li><input disabled="" type="checkbox"> 验证excludePathPatterns配置</li>
+<li><input disabled="" type="checkbox"> 使用Spring Security的StrictHttpFirewall</li>
+<li><input disabled="" type="checkbox"> 启用CSRF保护</li>
+<li><input disabled="" type="checkbox"> 配置安全响应头</li>
+</ul>
+<p><strong>Shiro应用检查清单：</strong></p>
+<ul>
+<li><input disabled="" type="checkbox"> 升级到最新版本的Shiro</li>
+<li><input disabled="" type="checkbox"> 使用精确路径匹配而非通配符</li>
+<li><input disabled="" type="checkbox"> 检查filterChainDefinitionMap配置顺序</li>
+<li><input disabled="" type="checkbox"> 启用Shiro的路径标准化</li>
+<li><input disabled="" type="checkbox"> 实现自定义路径匹配逻辑</li>
+</ul>
+<h3 id="6-相关CVE和漏洞案例"><a href="#6-相关CVE和漏洞案例" class="headerlink" title="6. 相关CVE和漏洞案例"></a>6. 相关CVE和漏洞案例</h3><h4 id="历史漏洞总结"><a href="#历史漏洞总结" class="headerlink" title="历史漏洞总结"></a>历史漏洞总结</h4><figure class="highlight markdown"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs markdown">| CVE编号 | 影响组件 | 漏洞类型 | 影响版本 | 修复版本 |<br>|---------|----------|----------|----------|----------|<br>| CVE-2020-1957 | Apache Shiro | 路径遍历绕过 | &lt; 1.5.2 | 1.5.2+ |<br>| CVE-2020-11989 | Apache Shiro | 路径参数绕过 | &lt; 1.5.3 | 1.5.3+ |<br>| CVE-2020-13933 | Apache Shiro | 特殊字符绕过 | &lt; 1.6.0 | 1.6.0+ |<br>| CVE-2021-41303 | Apache Shiro | 正则绕过 | &lt; 1.8.0 | 1.8.0+ |<br>| CVE-2022-32532 | Apache Shiro | 路径匹配绕过 | &lt; 1.9.1 | 1.9.1+ |<br></code></pre></td></tr></table></figure>
+
+<h4 id="实际案例分析"><a href="#实际案例分析" class="headerlink" title="实际案例分析"></a>实际案例分析</h4><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><code class="hljs java"><span class="hljs-comment">// 案例1：某电商网站的权限绕过</span><br><span class="hljs-comment">// 原始保护配置</span><br>filterChainDefinitionMap.put(<span class="hljs-string">&quot;/admin/*&quot;</span>, <span class="hljs-string">&quot;roles[admin]&quot;</span>);<br><br><span class="hljs-comment">// 攻击者发现可以通过以下方式绕过：</span><br><span class="hljs-comment">// GET /admin;.css  -&gt; 访问成功</span><br><span class="hljs-comment">// 原因：路径参数导致实际访问的是/admin，但过滤器认为这不匹配/admin/*</span><br><br><span class="hljs-comment">// 案例2：某OA系统的文件下载漏洞  </span><br><span class="hljs-meta">@GetMapping(&quot;/download&quot;)</span><br><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title function_">downloadFile</span><span class="hljs-params">(<span class="hljs-meta">@RequestParam</span> String filename, HttpServletResponse response)</span> &#123;<br>    <span class="hljs-comment">// 漏洞：未验证文件路径</span><br>    <span class="hljs-type">File</span> <span class="hljs-variable">file</span> <span class="hljs-operator">=</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">File</span>(<span class="hljs-string">&quot;/upload/&quot;</span> + filename);<br>    <span class="hljs-comment">// ... 下载逻辑</span><br>&#125;<br><br><span class="hljs-comment">// 攻击者可以通过路径遍历下载任意文件：</span><br><span class="hljs-comment">// GET /download?filename=../../../etc/passwd</span><br><span class="hljs-comment">// GET /download;.css?filename=../../../etc/passwd  # 绕过权限检查</span><br></code></pre></td></tr></table></figure>
+
+<hr>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>Java Web应用的鉴权绕过技术主要集中在以下几个方面：</p>
+<ol>
+<li><strong>路径参数污染</strong>：利用分号(;)引入的路径参数来绕过基于URL字符串匹配的访问控制</li>
+<li><strong>路径遍历</strong>：使用<code>../</code>、<code>./</code>等路径遍历字符来绕过路径匹配</li>
+<li><strong>编码绕过</strong>：使用URL编码、双重编码等方式来绕过字符串匹配</li>
+<li><strong>HTTP方法绕过</strong>：当访问控制只针对特定HTTP方法时的绕过</li>
+<li><strong>大小写绕过</strong>：在大小写敏感的匹配中使用不同的大小写组合</li>
+</ol>
+<p><strong>防护的核心原则：</strong></p>
+<ul>
+<li>使用白名单而非黑名单</li>
+<li>进行路径标准化处理</li>
+<li>使用框架提供的安全组件</li>
+<li>实施深度防御策略</li>
+<li>定期进行安全测试和代码审计</li>
+</ul>
+<p>通过理解这些攻击技术和防护方法，开发者可以更好地保护Java Web应用免受鉴权绕过攻击。</p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/Java%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="category-chain-item">Java代码审计</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E4%BB%A3%E7%A0%81%E5%AE%A1%E8%AE%A1/" class="print-no-link">#代码审计</a>
+      
+        <a href="/tags/Java/" class="print-no-link">#Java</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Java Web应用鉴权绕过分析</div>
+      <div>https://ooo7ce.github.io/2025/05/10/Java Web应用鉴权绕过分析/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Noah</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2025年5月10日</div>
+        </div>
+      
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-cc-by"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/09/10/%E5%88%86%E5%B1%82%E6%A8%A1%E5%9E%8B%E4%B8%8EMVC/" title="分层模型与MVC">
+                        <span class="hidden-mobile">分层模型与MVC</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+           <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> <div style="font-size: 0.85rem"> <span id="timeDate">载入天数...</span> <span id="times">载入时分秒...</span> <script src="/js/duration.js"></script> </div> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="busuanzi_container_site_pv" style="display: none">
+        总访问量 
+        <span id="busuanzi_value_site_pv"></span>
+         次
+      </span>
+    
+    
+      <span id="busuanzi_container_site_uv" style="display: none">
+        总访客数 
+        <span id="busuanzi_value_site_uv"></span>
+         人
+      </span>
+    
+    
+
+  
+
+</div>
+
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
