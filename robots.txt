@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /archives/
+Allow: /categories/
+Allow: /tags/
+Allow: /about/
+
+Disallow: /js/
+Disallow: /css/
+Disallow: /fonts/
+Disallow: /vendor/
+Disallow: /admin/
+
+Sitemap: https://v12.icu/sitemap.xml
+Sitemap: https://v12.icu/baidusitemap.xml 

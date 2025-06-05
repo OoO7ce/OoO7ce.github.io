@@ -17,21 +17,25 @@
   
   <meta name="theme-color" content="#2f4154">
   <meta name="author" content="Noah">
-  <meta name="keywords" content="">
+  <meta name="keywords" content="Java Web安全,鉴权绕过,Servlet过滤器,路径参数污染,Spring拦截器绕过,Shiro绕过,权限控制漏洞,Web安全审计,Java代码审计,安全漏洞分析">
   
-    <meta name="description" content="Java Web应用鉴权绕过分析目录 Servlet鉴权基础 路径参数污染攻击 Spring拦截器绕过 Shiro鉴权绕过 其他常见绕过技术 防护建议   Servlet鉴权基础1. 源码审计入口点在进行Servlet应用的安全审计时，主要关注以下文件：  闭源应用：查看 WEB-INF&#x2F;web.xml 文件 开源应用：直接查看源码中的路由配置  web.xml配置示例12345678910111">
+    <meta name="description" content="深入分析Java Web应用中的鉴权绕过漏洞，包括Servlet过滤器绕过、路径参数污染、Spring拦截器绕过、Shiro鉴权绕过等常见安全问题的原理、利用方法和防护措施">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Java Web应用鉴权绕过分析">
-<meta property="og:url" content="https://ooo7ce.github.io/2025/05/10/Java%20Web%E5%BA%94%E7%94%A8%E9%89%B4%E6%9D%83%E7%BB%95%E8%BF%87%E5%88%86%E6%9E%90/index.html">
+<meta property="og:url" content="https://v12.icu/2025/05/10/Java%20Web%E5%BA%94%E7%94%A8%E9%89%B4%E6%9D%83%E7%BB%95%E8%BF%87%E5%88%86%E6%9E%90/index.html">
 <meta property="og:site_name" content="TraceSec">
-<meta property="og:description" content="Java Web应用鉴权绕过分析目录 Servlet鉴权基础 路径参数污染攻击 Spring拦截器绕过 Shiro鉴权绕过 其他常见绕过技术 防护建议   Servlet鉴权基础1. 源码审计入口点在进行Servlet应用的安全审计时，主要关注以下文件：  闭源应用：查看 WEB-INF&#x2F;web.xml 文件 开源应用：直接查看源码中的路由配置  web.xml配置示例12345678910111">
+<meta property="og:description" content="深入分析Java Web应用中的鉴权绕过漏洞，包括Servlet过滤器绕过、路径参数污染、Spring拦截器绕过、Shiro鉴权绕过等常见安全问题的原理、利用方法和防护措施">
 <meta property="og:locale" content="zh_CN">
 <meta property="og:image" content="https://blog-1257215598.cos.ap-chengdu.myqcloud.com/hexo/20250603231503824.webp?imageSlim">
 <meta property="article:published_time" content="2025-05-09T16:30:56.000Z">
-<meta property="article:modified_time" content="2025-06-03T15:19:40.293Z">
+<meta property="article:modified_time" content="2025-06-05T14:57:55.047Z">
 <meta property="article:author" content="Noah">
 <meta property="article:tag" content="代码审计">
 <meta property="article:tag" content="Java">
+<meta property="article:tag" content="Web安全">
+<meta property="article:tag" content="鉴权绕过">
+<meta property="article:tag" content="漏洞分析">
+<meta property="article:tag" content="安全防护">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:image" content="https://blog-1257215598.cos.ap-chengdu.myqcloud.com/hexo/20250603231503824.webp?imageSlim">
   
@@ -77,7 +81,7 @@
   <script id="fluid-configs">
     var Fluid = window.Fluid || {};
     Fluid.ctx = Object.assign({}, Fluid.ctx)
-    var CONFIG = {"hostname":"ooo7ce.github.io","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":true,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null},"woyaola":null,"cnzz":null},"search_path":"/local-search.xml","include_content_in_search":true};
+    var CONFIG = {"hostname":"v12.icu","root":"/","version":"1.9.8","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":true,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false},"umami":{"src":null,"website_id":null,"domains":null,"start_time":"2024-01-01T00:00:00.000Z","token":null,"api_server":null},"woyaola":null,"cnzz":null},"search_path":"/local-search.xml","include_content_in_search":true};
 
     if (CONFIG.web_analytics.follow_dnt) {
       var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
@@ -90,7 +94,8 @@
 
 
   
-<meta name="generator" content="Hexo 7.1.1"></head>
+<meta name="generator" content="Hexo 7.3.0"><link rel="alternate" href="/atom.xml" title="TraceSec" type="application/atom+xml">
+</head>
 
 
 <body>
@@ -470,6 +475,14 @@
       
         <a href="/tags/Java/" class="print-no-link">#Java</a>
       
+        <a href="/tags/Web%E5%AE%89%E5%85%A8/" class="print-no-link">#Web安全</a>
+      
+        <a href="/tags/%E9%89%B4%E6%9D%83%E7%BB%95%E8%BF%87/" class="print-no-link">#鉴权绕过</a>
+      
+        <a href="/tags/%E6%BC%8F%E6%B4%9E%E5%88%86%E6%9E%90/" class="print-no-link">#漏洞分析</a>
+      
+        <a href="/tags/%E5%AE%89%E5%85%A8%E9%98%B2%E6%8A%A4/" class="print-no-link">#安全防护</a>
+      
     </div>
   
 </div>
@@ -481,7 +494,7 @@
   <div class="license-box my-3">
     <div class="license-title">
       <div>Java Web应用鉴权绕过分析</div>
-      <div>https://ooo7ce.github.io/2025/05/10/Java Web应用鉴权绕过分析/</div>
+      <div>https://v12.icu/2025/05/10/Java Web应用鉴权绕过分析/</div>
     </div>
     <div class="license-meta">
       
